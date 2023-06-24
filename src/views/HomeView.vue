@@ -56,7 +56,7 @@
         <div style="display: flex; justify-content: space-between">
           <div>
             <n-form-item label="题序:" label-placement="left" :show-feedback="false">
-              <n-input-number :min="1" :max="questions.length" style="max-width: 120px"
+              <n-input-number :min="1" :max="questions.length" style="max-width: 90px"
                 v-model:value="currentQuestionIndex" />
             </n-form-item>
           </div>
