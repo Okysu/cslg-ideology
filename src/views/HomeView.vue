@@ -129,7 +129,6 @@ const questionOptions = [
 
 watch(questionChosen, () => {
   const url = questionOptions.find((item) => item.value === questionChosen.value)!.value
-  currentQuestionIndex.value = 1
   getQuestions(url)
   localStorage.setItem('questionChosen', questionChosen.value!)
 })
