@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import {
   NCard,
   NButton,
@@ -129,6 +129,7 @@ const questionOptions = [
 
 watch(questionChosen, () => {
   const url = questionOptions.find((item) => item.value === questionChosen.value)!.value
+  currentQuestionIndex.value = 1
   getQuestions(url)
   localStorage.setItem('questionChosen', questionChosen.value!)
 })
@@ -160,15 +161,17 @@ const getQuestions = (url: string) => {
     .then((data) => {
       questions.value = data
       currentQuestion.value = data[currentQuestionIndex.value - 1]
-      if (memoryMode.value) {
-        const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
-        listItems.forEach((item: HTMLElement) => {
-          if (item.dataset.rightFlag === 'true') {
-            item.style.backgroundColor = '#67c23a'
-            item.style.color = '#fff'
-          }
-        })
-      }
+      nextTick(() => {
+        if (memoryMode.value) {
+          const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
+          listItems.forEach((item: HTMLElement) => {
+            if (item.dataset.rightFlag === 'true') {
+              item.style.backgroundColor = '#67c23a'
+              item.style.color = '#fff'
+            }
+          })
+        }
+      })
     })
 }
 
@@ -245,15 +248,17 @@ watch(currentQuestionIndex, (newValue) => {
     item.style.color = 'var(--n-text-color)'
   })
 
-  if (memoryMode.value) {
-    const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
-    listItems.forEach((item: HTMLElement) => {
-      if (item.dataset.rightFlag === 'true') {
-        item.style.backgroundColor = '#67c23a'
-        item.style.color = '#fff'
-      }
-    })
-  }
+  nextTick(() => {
+    if (memoryMode.value) {
+      const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
+      listItems.forEach((item: HTMLElement) => {
+        if (item.dataset.rightFlag === 'true') {
+          item.style.backgroundColor = '#67c23a'
+          item.style.color = '#fff'
+        }
+      })
+    }
+  })
 })
 
 watch(generateMode, (newValue) => {
