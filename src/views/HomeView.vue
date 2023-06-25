@@ -86,9 +86,6 @@
             <template #unchecked> 普通模式 </template>
           </n-switch>
         </n-form-item>
-        <!-- <n-form-item label="考试模式：" label-placement="left">
-          <n-button size="small" round @click="generateQuestions">生成试题</n-button>
-        </n-form-item> -->
         <template #footer> © Powered by Yby.zone </template>
       </n-card>
     </n-modal>
@@ -220,7 +217,6 @@ onMounted(() => {
     ? localStorage.getItem('questionChosen')!
     : 'https://source.yby.zone/ideology/q_mao.json'
   questionChosen.value = questionChosenValue
-  getQuestions(questionChosenValue)
   const currentQuestionIndexValue: number = localStorage.getItem('currentQuestionIndex')
     ? Number(localStorage.getItem('currentQuestionIndex'))
     : 1
@@ -300,7 +296,7 @@ watch(memoryMode, (newValue) => {
 }
 
 .n-list-item {
-  border-radius: 4px;
+  border-radius: 5px !important;
 }
 
 .n-list-item:hover {
