@@ -33,7 +33,7 @@
             </n-button>
           </n-space>
         </template>
-        <n-h3>{{ currentQuestion?.content.toString() }}</n-h3>
+        <n-h3>{{ currentQuestion?.content?.toString() ?? currentQuestion?.content  }}</n-h3>
       </n-thing>
       <template #footer>
         <n-list hoverable clickable>
