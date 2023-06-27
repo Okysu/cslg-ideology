@@ -203,6 +203,7 @@ const reGetQuestions = () => {
     : 1
   currentQuestionIndex.value = currentQuestionIndexValue
   getQuestions(questionChosen.value)
+  errorMode.value = false
 }
 
 watch(questionChosen, () => {
@@ -305,7 +306,7 @@ onMounted(() => {
     : 1
   currentQuestionIndex.value = currentQuestionIndexValue
   const generateModeValue: boolean = localStorage.getItem('generateMode')
-    ? Boolean(localStorage.getItem('generateMode'))
+    ? localStorage.getItem('generateMode') === 'true'
     : false
   generateMode.value = generateModeValue
   const memoryModeValue: boolean = localStorage.getItem('memoryMode')
