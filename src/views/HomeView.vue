@@ -16,36 +16,74 @@
       </template>
       <n-thing>
         <template #header>
+          {{ currentQuestionIndex }}/{{ questions.length }}
           <span>{{ getQuestionType(currentQuestion?.type) }}</span>
         </template>
-        <n-h3>{{ currentQuestionIndex }}. {{ currentQuestion?.content.toString() }}</n-h3>
+        <template v-if="errorMode" #header-extra>
+          <n-space>
+            <n-button size="small" round @click="removeErrorQuestion(currentQuestion!)">
+              <n-icon>
+                <TrashBinOutline />
+              </n-icon>
+            </n-button>
+            <n-button size="small" round @click="reGetQuestions">
+              <n-icon>
+                <ExitOutline />
+              </n-icon>
+            </n-button>
+          </n-space>
+        </template>
+        <n-h3>{{ currentQuestion?.content.toString() }}</n-h3>
       </n-thing>
       <template #footer>
         <n-list hoverable clickable>
-          <div v-if="currentQuestion?.type === 'multiple_choice' ||
-            currentQuestion?.type === 'single_choice'
-            ">
-            <n-list-item @click="checkAnswer" :data-right-num="currentQuestion?.answer.split('').length" :data-right-flag="currentQuestion?.answer.split('').includes(String.fromCharCode(65 + index))
-              " v-for="(option, index) in currentQuestion?.options" :key="index">
+          <div
+            v-if="
+              currentQuestion?.type === 'multiple_choice' ||
+              currentQuestion?.type === 'single_choice'
+            "
+          >
+            <n-list-item
+              @click="checkAnswer"
+              :data-right-num="currentQuestion?.answer.split('').length"
+              :data-right-flag="
+                currentQuestion?.answer.split('').includes(String.fromCharCode(65 + index))
+              "
+              v-for="(option, index) in currentQuestion?.options"
+              :key="index"
+            >
               {{ option }}
             </n-list-item>
           </div>
           <div v-else-if="currentQuestion?.type === 'true_or_false'">
-            <n-list-item @click="checkAnswer" :data-right-flag="['对', '错'][index] === currentQuestion?.answer"
-              :data-right-num="1" v-for="(option, index) in ['正确', '错误']" :key="index">
+            <n-list-item
+              @click="checkAnswer"
+              :data-right-flag="['对', '错'][index] === currentQuestion?.answer"
+              :data-right-num="1"
+              v-for="(option, index) in ['正确', '错误']"
+              :key="index"
+            >
               {{ option }}
             </n-list-item>
           </div>
           <div v-else-if="currentQuestion?.type === 'essay'">
             <n-form-item label="答案" label-placement="left" :show-feedback="false">
-              <n-input type="textarea" :autosize="{
-                maxRows: 20
-              }" :value="currentQuestion?.answer" />
+              <n-input
+                type="textarea"
+                :autosize="{
+                  maxRows: 20
+                }"
+                :value="currentQuestion?.answer"
+              />
             </n-form-item>
           </div>
           <div v-else-if="currentQuestion?.type === 'fill_blank'">
             <n-list-item v-for="(list, index) in currentQuestion?.answer.split('；')">
-              <n-form-item :label="`填空 ${index + 1}`" label-placement="left" :show-feedback="false">
+              <n-form-item
+                :label="`填空 ${index + 1}`"
+                label-placement="left"
+                :show-feedback="false"
+              >
                 <n-input type="textarea" autosize :value="list" />
               </n-form-item>
             </n-list-item>
@@ -56,14 +94,25 @@
         <div style="display: flex; justify-content: space-between">
           <div>
             <n-form-item label="题序:" label-placement="left" :show-feedback="false">
-              <n-input-number :min="1" :max="questions.length" style="max-width: 90px"
-                v-model:value="currentQuestionIndex" />
+              <n-input-number
+                :min="1"
+                :max="questions.length"
+                style="max-width: 90px"
+                v-model:value="currentQuestionIndex"
+              />
             </n-form-item>
           </div>
           <n-space>
-            <n-button v-show="currentQuestionIndex > 1" size="small" round @click="prevQuestion">上一题</n-button>
-            <n-button v-show="currentQuestionIndex < questions.length" size="small" round
-              @click="nextQuestion">下一题</n-button>
+            <n-button v-show="currentQuestionIndex > 1" size="small" round @click="prevQuestion"
+              >上一题</n-button
+            >
+            <n-button
+              v-show="currentQuestionIndex < questions.length"
+              size="small"
+              round
+              @click="nextQuestion"
+              >下一题</n-button
+            >
           </n-space>
         </div>
       </template>
@@ -85,6 +134,29 @@
             <template #checked> 背题模式 </template>
             <template #unchecked> 普通模式 </template>
           </n-switch>
+        </n-form-item>
+        <n-form-item label="错题集：" label-placement="left">
+          <n-space>
+            <n-button
+              size="small"
+              round
+              @click="
+                ;(questions = questionError),
+                  (currentQuestionIndex = 1),
+                  (currentQuestion = questions[0]),
+                  (errorMode = true)
+              "
+            >
+              加载错题集
+            </n-button>
+            <n-button
+              size="small"
+              round
+              @click=";(questionError = []), (errorMode = false), reGetQuestions()"
+            >
+              清空错题集
+            </n-button>
+          </n-space>
         </n-form-item>
         <template #footer> © Powered by Yby.zone </template>
       </n-card>
@@ -108,11 +180,12 @@ import {
   NListItem,
   NInput,
   NModal,
-  NSelect
+  NSelect,
+  c
 } from 'naive-ui'
-import { SettingsOutline, CloseOutline } from '@vicons/ionicons5'
+import { SettingsOutline, CloseOutline, TrashBinOutline, ExitOutline } from '@vicons/ionicons5'
 
-const questionChosen = ref<string>("毛泽东思想和中国特色社会主义理论体系概论")
+const questionChosen = ref<string>('毛泽东思想和中国特色社会主义理论体系概论')
 const questionOptions = [
   {
     label: '毛泽东思想和中国特色社会主义理论体系概论',
@@ -124,9 +197,16 @@ const questionOptions = [
   }
 ]
 
+const reGetQuestions = () => {
+  const currentQuestionIndexValue: number = localStorage.getItem('currentQuestionIndex')
+    ? Number(localStorage.getItem('currentQuestionIndex'))
+    : 1
+  currentQuestionIndex.value = currentQuestionIndexValue
+  getQuestions(questionChosen.value)
+}
+
 watch(questionChosen, () => {
-  const url = questionOptions.find((item) => item.value === questionChosen.value)!.value
-  getQuestions(url)
+  getQuestions(questionChosen.value)
   localStorage.setItem('questionChosen', questionChosen.value!)
 })
 
@@ -184,9 +264,12 @@ const checkAnswer = (e: Event) => {
         if (!error_flag.value) {
           nextQuestion()
         }
-      }, 500)
+      }, 550)
     }
   } else {
+    if (!error_flag.value) {
+      addErrorQuestion(currentQuestion.value!)
+    }
     element.style.backgroundColor = '#f56c6c'
     error_flag.value = true
   }
@@ -221,18 +304,25 @@ onMounted(() => {
     ? Number(localStorage.getItem('currentQuestionIndex'))
     : 1
   currentQuestionIndex.value = currentQuestionIndexValue
-  const generateModeValue: boolean = localStorage.getItem('generatMode')
-    ? Boolean(localStorage.getItem('generatMode'))
+  const generateModeValue: boolean = localStorage.getItem('generateMode')
+    ? Boolean(localStorage.getItem('generateMode'))
     : false
   generateMode.value = generateModeValue
   const memoryModeValue: boolean = localStorage.getItem('memoryMode')
-    ? Boolean(localStorage.getItem('memoryMode'))
+    ? localStorage.getItem('memoryMode') === 'true'
     : false
   memoryMode.value = memoryModeValue
+
+  const errorQuestionsValue: Question[] = localStorage.getItem('errorQuestions')
+    ? JSON.parse(localStorage.getItem('errorQuestions')!)
+    : []
+  questionError.value = errorQuestionsValue
 })
 
 watch(currentQuestionIndex, (newValue) => {
-  localStorage.setItem('currentQuestionIndex', newValue.toString())
+  if (!errorMode.value) {
+    localStorage.setItem('currentQuestionIndex', newValue.toString())
+  }
   currentQuestion.value = questions.value[newValue - 1]
   error_flag.value = false
   right_num.value = 0
@@ -273,6 +363,37 @@ watch(memoryMode, (newValue) => {
   }
   localStorage.setItem('memoryMode', newValue.toString())
 })
+
+const questionError = ref<Question[]>([])
+const errorMode = ref<boolean>(false)
+watch(
+  questionError,
+  (newValue) => {
+    localStorage.setItem('errorQuestions', JSON.stringify(newValue))
+  },
+  { deep: true }
+)
+
+const addErrorQuestion = (question: Question) => {
+  // check if question is already in error list
+  const isExist = questionError.value.some((item) => item.content === question.content)
+  if (!isExist) {
+    questionError.value.push(question)
+  }
+}
+
+const removeErrorQuestion = (question: Question) => {
+  const index = questionError.value.findIndex((item) => item.content === question.content)
+  questionError.value.splice(index, 1)
+  if (questionError.value.length === 0) {
+    errorMode.value = false
+    reGetQuestions()
+  }
+  if (index === questionError.value.length) {
+    currentQuestionIndex.value--
+  }
+  currentQuestion.value = questions.value[currentQuestionIndex.value - 1]
+}
 </script>
 
 <style scoped>
