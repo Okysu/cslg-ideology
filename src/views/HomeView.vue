@@ -1,5 +1,5 @@
 <template>
-  <div class="card-box">
+  <div id="box" class="card-box">
     <n-card hoverable title="思政课在线题库">
       <template #header-extra>
         <n-space>
@@ -10,6 +10,11 @@
           <n-button size="small" circle @click="showSettings = true">
             <n-icon>
               <SettingsOutline />
+            </n-icon>
+          </n-button>
+          <n-button size="small" circle @click="showDrawer = true">
+            <n-icon>
+              <ListOutline />
             </n-icon>
           </n-button>
         </n-space>
@@ -126,46 +131,96 @@
             </n-icon>
           </n-button>
         </template>
-        <n-form-item label="题库：" label-placement="left">
-          <n-select v-model:value="questionChosen" :options="questionOptions" />
-        </n-form-item>
-        <n-form-item label="显示模式：" label-placement="left">
-          <n-switch v-model:value="memoryMode">
-            <template #checked> 背题模式 </template>
-            <template #unchecked> 普通模式 </template>
-          </n-switch>
-        </n-form-item>
-        <n-form-item label="错题集：" label-placement="left">
-          <n-space>
-            <n-button
-              size="small"
-              round
-              @click="
-                ;(questions = questionError),
-                  (currentQuestionIndex = 1),
-                  (currentQuestion = questions[0]),
-                  (errorMode = true)
-              "
-            >
-              加载错题集
-            </n-button>
-            <n-button
-              size="small"
-              round
-              @click=";(questionError = []), (errorMode = false), reGetQuestions()"
-            >
-              清空错题集
-            </n-button>
-          </n-space>
-        </n-form-item>
+        <n-tabs type="line" animated>
+          <n-tab-pane name="settings" tab="基本设置">
+            <n-form-item label="显示模式：" label-placement="left">
+              <n-switch v-model:value="memoryMode">
+                <template #checked> 背题模式 </template>
+                <template #unchecked> 普通模式 </template>
+              </n-switch>
+            </n-form-item>
+            <n-form-item label="题库：" label-placement="left">
+              <n-select v-model:value="questionChosen" :options="questionOptions" />
+            </n-form-item>
+          </n-tab-pane>
+          <n-tab-pane name="questions" tab="题库商店">
+            <n-list hoverable clickable>
+              <n-list-item v-for="(item, index) in questionRepo" :key="index" @click="">
+                <n-thing :title="item.name" :description="item.description">
+                  <template
+                    #header-extra
+                    v-if="questionslist.find((question) => item.name === question.name)"
+                  >
+                    <n-tag type="success" size="small"> 已下载 </n-tag>
+                  </template>
+                  <n-button
+                    v-if="!questionslist.find((question) => item.name === question.name)"
+                    @click="useQuestionConfig.addQuestion(item.url, item.name)"
+                    size="small"
+                  >
+                    下载
+                  </n-button>
+                </n-thing>
+              </n-list-item>
+            </n-list>
+          </n-tab-pane>
+          <n-tab-pane name="errors" tab="错题集">
+            <n-list hoverable clickable>
+              <n-list-item v-for="(item, index) in errors" :key="index" @click="">
+                <n-thing
+                  :title="questionslist.find((e) => e.id === item.id)?.name"
+                  :description="`${item.questions.length} 条`"
+                >
+                  <n-space>
+                    <n-button
+                      @click="
+                        ;(questions = item.questions),
+                          (currentQuestionIndex = 1),
+                          (currentQuestion = questions[0]),
+                          (errorMode = true)
+                      "
+                      size="small"
+                    >
+                      加载错题集
+                    </n-button>
+                    <n-button
+                      size="small"
+                      @click=";(item.questions = []), (errorMode = false), reGetQuestions()"
+                    >
+                      清空错题集
+                    </n-button>
+                  </n-space>
+                </n-thing>
+              </n-list-item>
+            </n-list>
+          </n-tab-pane>
+        </n-tabs>
         <template #footer> © Powered by Yby.zone </template>
       </n-card>
     </n-modal>
+    <n-drawer display-directive="show" v-model:show="showDrawer" :height="400" placement="top">
+      <n-drawer-content title="答题卡">
+        <n-space>
+          <template v-for="(list, index) in questions">
+            <div v-memo="[list]">
+              <n-button
+                size="medium"
+                :type="confirmType(list)"
+                circle
+                @click=";(currentQuestionIndex = index + 1), (showDrawer = false)"
+              >
+                {{ index + 1 }}
+              </n-button>
+            </div>
+          </template>
+        </n-space>
+      </n-drawer-content>
+    </n-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import {
   NCard,
   NButton,
@@ -181,74 +236,132 @@ import {
   NInput,
   NModal,
   NSelect,
-  c
+  NTabs,
+  NTabPane,
+  NTag,
+  NDrawer,
+  NDrawerContent
 } from 'naive-ui'
-import { SettingsOutline, CloseOutline, TrashBinOutline, ExitOutline } from '@vicons/ionicons5'
+import {
+  SettingsOutline,
+  CloseOutline,
+  TrashBinOutline,
+  ExitOutline,
+  ListOutline
+} from '@vicons/ionicons5'
 
-const questionChosen = ref<string>('毛泽东思想和中国特色社会主义理论体系概论')
-const questionOptions = [
-  {
-    label: '毛泽东思想和中国特色社会主义理论体系概论',
-    value: 'https://source.yby.zone/ideology/q_mao.json'
-  },
-  {
-    label: '习近平新时代中国特色社会主义思想概论',
-    value: 'https://source.yby.zone/ideology/q_xi.json'
-  }
-]
+import { questionConfig } from '@/stores/questionConfig'
+import { storeToRefs } from 'pinia'
 
-const reGetQuestions = () => {
-  const currentQuestionIndexValue: number = localStorage.getItem('currentQuestionIndex')
-    ? Number(localStorage.getItem('currentQuestionIndex'))
-    : 1
-  currentQuestionIndex.value = currentQuestionIndexValue
-  getQuestions(questionChosen.value)
-}
+import SwipeHandler from '@/utils/SwipeScreen'
+
+const useQuestionConfig = questionConfig()
+
+const showDrawer = ref<boolean>(false)
+
+const {
+  questions: questionslist,
+  questionNow: questionChosen,
+  record,
+  errors,
+  generateMode,
+  memoryMode
+} = storeToRefs(useQuestionConfig)
+
+const questionRepo = ref<{ name: string; url: string; description: string }[]>([])
+
+const questionOptions = computed(() => {
+  return questionslist.value.map((e) => {
+    return {
+      label: e.name,
+      value: e.id
+    }
+  })
+})
+
+useQuestionConfig.listQuestion().then((res) => {
+  questionRepo.value = res
+})
 
 watch(questionChosen, () => {
   getQuestions(questionChosen.value)
-  localStorage.setItem('questionChosen', questionChosen.value!)
 })
 
+const reGetQuestions = () => {
+  getQuestions(questionChosen.value)
+}
+
+const confirmType = (question: Question) => {
+  if (question.answerd === true && !question.error) return 'success'
+  if (question.answerd === true && question.error) return 'error'
+  return 'default'
+}
+
 interface Question {
-  type: string
-  content: string
+  type: 'essay' | 'true_or_false' | 'single_choice' | 'multiple_choice' | 'fill_blank'
   options?: string[]
+  content: string | string[]
   answer: string
+  answerd?: boolean
+  error?: boolean
 }
 
 const questions = ref<Question[]>([])
 const currentQuestion = ref<Question>()
 const currentQuestionIndex = ref<number>(0)
-const generateMode = ref<boolean>(false)
 const nextQuestion = () => {
   if (generateMode.value) {
     currentQuestionIndex.value = Math.floor(Math.random() * questions.value.length)
   } else {
-    currentQuestionIndex.value = currentQuestionIndex.value + 1
+    if (currentQuestionIndex.value < questions.value.length)
+      currentQuestionIndex.value = currentQuestionIndex.value + 1
+    else return
   }
+  if (errorMode.value) return
+  useQuestionConfig.addRecord(questionChosen.value, currentQuestionIndex.value)
 }
 const prevQuestion = () => {
-  currentQuestionIndex.value = currentQuestionIndex.value - 1
+  if (generateMode.value) {
+    currentQuestionIndex.value = Math.floor(Math.random() * questions.value.length)
+  } else {
+    if (currentQuestionIndex.value > 1) currentQuestionIndex.value = currentQuestionIndex.value - 1
+    else return
+  }
+  if (errorMode.value) return
+  useQuestionConfig.addRecord(questionChosen.value, currentQuestionIndex.value)
 }
-const getQuestions = (url: string) => {
-  fetch(url)
-    .then((res) => res.json())
-    .then((data) => {
-      questions.value = data
-      currentQuestion.value = data[currentQuestionIndex.value - 1]
-      nextTick(() => {
-        if (memoryMode.value) {
-          const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
-          listItems.forEach((item: HTMLElement) => {
-            if (item.dataset.rightFlag === 'true') {
-              item.style.backgroundColor = '#67c23a'
-              item.style.color = '#fff'
-            }
-          })
+
+const getQuestions = (id: string) => {
+  const questions_chosen = questionslist.value.find((e) => e.id === id)
+  questionError.value = errors.value.find((e) => e.id === id)?.questions ?? []
+  if (questions_chosen) {
+    questions.value = questions_chosen.questions
+    const question_record = record.value.find((e) => e.id === id)
+    if (question_record) {
+      currentQuestionIndex.value = question_record.index
+    } else {
+      currentQuestionIndex.value = 1
+    }
+    const question_error = errors.value.find((e) => e.id === id)
+    if (question_error) {
+      questions.value.forEach((question) => {
+        if (question_error.questions.find((e) => e.content === question.content)) {
+          question.error = true
         }
       })
-    })
+    }
+  }
+  nextTick(() => {
+    if (memoryMode.value) {
+      const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
+      listItems.forEach((item: HTMLElement) => {
+        if (item.dataset.rightFlag === 'true') {
+          item.style.backgroundColor = '#67c23a'
+          item.style.color = '#fff'
+        }
+      })
+    }
+  })
 }
 
 const error_flag = ref<boolean>(false)
@@ -256,6 +369,7 @@ const right_num = ref<number>(0)
 const checkAnswer = (e: Event) => {
   const element = e.currentTarget as HTMLElement
   const count = element.dataset.rightNum
+  useQuestionConfig.addAnsweredMark(questionChosen.value, currentQuestionIndex.value - 1)
   if (element.dataset.rightFlag === 'true') {
     element.style.backgroundColor = '#67c23a'
     right_num.value = right_num.value + 1
@@ -269,6 +383,7 @@ const checkAnswer = (e: Event) => {
   } else {
     if (!error_flag.value) {
       addErrorQuestion(currentQuestion.value!)
+      currentQuestion.value!.error = true
     }
     element.style.backgroundColor = '#f56c6c'
     error_flag.value = true
@@ -296,33 +411,12 @@ const getQuestionType = (type?: string) => {
 const showSettings = ref<boolean>(false)
 
 onMounted(() => {
-  const questionChosenValue: string = localStorage.getItem('questionChosen')
-    ? localStorage.getItem('questionChosen')!
-    : 'https://source.yby.zone/ideology/q_mao.json'
-  questionChosen.value = questionChosenValue
-  const currentQuestionIndexValue: number = localStorage.getItem('currentQuestionIndex')
-    ? Number(localStorage.getItem('currentQuestionIndex'))
-    : 1
-  currentQuestionIndex.value = currentQuestionIndexValue
-  const generateModeValue: boolean = localStorage.getItem('generateMode')
-    ? Boolean(localStorage.getItem('generateMode'))
-    : false
-  generateMode.value = generateModeValue
-  const memoryModeValue: boolean = localStorage.getItem('memoryMode')
-    ? localStorage.getItem('memoryMode') === 'true'
-    : false
-  memoryMode.value = memoryModeValue
-
-  const errorQuestionsValue: Question[] = localStorage.getItem('errorQuestions')
-    ? JSON.parse(localStorage.getItem('errorQuestions')!)
-    : []
-  questionError.value = errorQuestionsValue
+  getQuestions(questionChosen.value)
+  const element = document.getElementById('box') as HTMLElement
+  new SwipeHandler(element, nextQuestion, prevQuestion)
 })
 
 watch(currentQuestionIndex, (newValue) => {
-  if (!errorMode.value) {
-    localStorage.setItem('currentQuestionIndex', newValue.toString())
-  }
   currentQuestion.value = questions.value[newValue - 1]
   error_flag.value = false
   right_num.value = 0
@@ -346,11 +440,6 @@ watch(currentQuestionIndex, (newValue) => {
   })
 })
 
-watch(generateMode, (newValue) => {
-  localStorage.setItem('generateMode', newValue.toString())
-})
-
-const memoryMode = ref<boolean>(false)
 watch(memoryMode, (newValue) => {
   if (newValue) {
     const listItems = document.querySelectorAll('.n-list-item') as NodeListOf<HTMLElement>
@@ -361,24 +450,16 @@ watch(memoryMode, (newValue) => {
       }
     })
   }
-  localStorage.setItem('memoryMode', newValue.toString())
 })
 
 const questionError = ref<Question[]>([])
 const errorMode = ref<boolean>(false)
-watch(
-  questionError,
-  (newValue) => {
-    localStorage.setItem('errorQuestions', JSON.stringify(newValue))
-  },
-  { deep: true }
-)
 
 const addErrorQuestion = (question: Question) => {
   // check if question is already in error list
   const isExist = questionError.value.some((item) => item.content === question.content)
   if (!isExist) {
-    questionError.value.push(question)
+    useQuestionConfig.addError(questionChosen.value, question)
   }
 }
 
