@@ -1,13 +1,13 @@
 <template>
   <div id="quiz-container" class="card-box">
-    <n-card hoverable title="思政课在线题库">
+    <n-card hoverable :title="isExamMode ? '考卷模式' : '思政课在线题库'">
               <template #header-extra>
           <n-space>
-            <n-switch v-model:value="isRandomMode">
+            <n-switch v-model:value="isRandomMode" :disabled="isExamMode">
               <template #checked> 随机模式 </template>
               <template #unchecked> 顺序模式 </template>
             </n-switch>
-            <n-button size="small" circle @click="showSettingsModal = true">
+            <n-button size="small" circle @click="showSettingsModal = true" v-if="!isExamMode">
               <n-icon>
                 <SettingsOutline />
               </n-icon>
@@ -507,11 +507,27 @@ const availableQuestionRepositories = computed(() => {
   )
 })
 
+const isExamMode = computed(() => {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.has('bank') && urlParams.has('questions')
+})
+
 // 初始化
 onMounted(async () => {
   try {
     questionRepositories.value = await questionStore.listQuestion()
-    loadQuestionBank(selectedQuestionBankId.value)
+    
+    // 检查URL参数，如果是考卷链接则加载考卷
+    const urlParams = new URLSearchParams(window.location.search)
+    const bank = urlParams.get('bank')
+    const questions = urlParams.get('questions')
+    
+    if (bank && questions) {
+      await loadExamFromParams(bank, questions)
+    } else {
+      loadQuestionBank(selectedQuestionBankId.value)
+    }
+    
     initializeSwipeHandler()
   } catch (error) {
     console.error('初始化失败:', error)
@@ -578,7 +594,7 @@ const goToNextQuestion = () => {
     currentIndex.value++
   }
   
-  if (!isErrorMode.value) {
+  if (!isErrorMode.value && !isExamMode.value) {
     questionStore.addRecord(selectedQuestionBankId.value, currentIndex.value)
   }
 }
@@ -590,7 +606,7 @@ const goToPreviousQuestion = () => {
     currentIndex.value--
   }
   
-  if (!isErrorMode.value) {
+  if (!isErrorMode.value && !isExamMode.value) {
     questionStore.addRecord(selectedQuestionBankId.value, currentIndex.value)
   }
 }
@@ -599,12 +615,14 @@ const handleAnswerClick = (event: Event) => {
   const element = event.currentTarget as HTMLElement
   const isCorrect = element.dataset.isCorrect === 'true'
   const answerCount = Number(element.dataset.answerCount)
-  questionStore.addAnsweredMark(selectedQuestionBankId.value, currentIndex.value - 1)
+  if (!isExamMode.value) {
+    questionStore.addAnsweredMark(selectedQuestionBankId.value, currentIndex.value - 1)
+  }
   if (isCorrect) {
     element.style.backgroundColor = '#67c23a'
     element.style.color = '#fff'
     correctAnswersSelected.value++
-    if (!isAnswerSubmitted.value && correctAnswersSelected.value === answerCount) {
+    if (!isAnswerSubmitted.value && correctAnswersSelected.value === answerCount && !isExamMode.value) {
       setTimeout(() => {
         if (!isAnswerSubmitted.value) {
           goToNextQuestion()
@@ -613,9 +631,11 @@ const handleAnswerClick = (event: Event) => {
     }
   } else {
     if (!isAnswerSubmitted.value) {
-      addToErrorList(currentQuestion.value!)
-      if (currentQuestion.value) {
-        currentQuestion.value.error = true
+      if (!isExamMode.value) {
+        addToErrorList(currentQuestion.value!)
+        if (currentQuestion.value) {
+          currentQuestion.value.error = true
+        }
       }
     }
     element.style.backgroundColor = '#f56c6c'
