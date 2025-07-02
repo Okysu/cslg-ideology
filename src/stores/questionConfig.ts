@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-type Question = {
+export type Question = {
   type: 'essay' | 'true_or_false' | 'single_choice' | 'multiple_choice' | 'fill_blank'
   options?: string[]
   content: string | string[]

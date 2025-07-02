@@ -9,6 +9,15 @@ const router = createRouter({
       name: 'home',
       component: HomeView
     },
+    {
+      path: '/exam',
+      name: 'exam',
+      component: HomeView,
+      props: (route) => ({ 
+        examMode: true,
+        examParams: route.query
+      })
+    },
   ]
 })
 
