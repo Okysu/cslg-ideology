@@ -24,6 +24,9 @@
         <template #header>
           {{ currentIndex }}/{{ totalQuestions }}
           <span>{{ questionTypeLabel }}</span>
+          <span v-if="isExamMode" style="margin-left: 10px; color: var(--n-primary-color);">
+            得分: {{ examScore }}/{{ examTotalScore }} ({{ examScorePercentage }}%)
+          </span>
         </template>
         <template v-if="isErrorMode" #header-extra>
           <n-space>
@@ -447,6 +450,11 @@ const examConfig = ref({
   essayRatio: 15
 })
 
+// 考卷得分相关
+const examScore = ref(0)
+const examTotalScore = ref(0)
+const examAnswers = ref<Record<number, boolean>>({})
+
 // 计算属性
 const totalQuestions = computed(() => currentQuestions.value.length)
 
@@ -510,6 +518,11 @@ const availableQuestionRepositories = computed(() => {
 const isExamMode = computed(() => {
   const urlParams = new URLSearchParams(window.location.search)
   return urlParams.has('bank') && urlParams.has('questions')
+})
+
+const examScorePercentage = computed(() => {
+  if (examTotalScore.value === 0) return 0
+  return Math.round((examScore.value / examTotalScore.value) * 100)
 })
 
 // 初始化
@@ -615,13 +628,22 @@ const handleAnswerClick = (event: Event) => {
   const element = event.currentTarget as HTMLElement
   const isCorrect = element.dataset.isCorrect === 'true'
   const answerCount = Number(element.dataset.answerCount)
+  
   if (!isExamMode.value) {
     questionStore.addAnsweredMark(selectedQuestionBankId.value, currentIndex.value - 1)
   }
+  
   if (isCorrect) {
     element.style.backgroundColor = '#67c23a'
     element.style.color = '#fff'
     correctAnswersSelected.value++
+    
+    // 考卷模式下计算得分
+    if (isExamMode.value && !isAnswerSubmitted.value) {
+      examAnswers.value[currentIndex.value - 1] = true
+      examScore.value++
+    }
+    
     if (!isAnswerSubmitted.value && correctAnswersSelected.value === answerCount && !isExamMode.value) {
       setTimeout(() => {
         if (!isAnswerSubmitted.value) {
@@ -636,10 +658,18 @@ const handleAnswerClick = (event: Event) => {
         if (currentQuestion.value) {
           currentQuestion.value.error = true
         }
+      } else {
+        // 考卷模式下记录错误答案
+        examAnswers.value[currentIndex.value - 1] = false
       }
     }
-    element.style.backgroundColor = '#f56c6c'
-    element.style.color = '#fff'
+    
+    // 考卷模式下不显示红色错误提示
+    if (!isExamMode.value) {
+      element.style.backgroundColor = '#f56c6c'
+      element.style.color = '#fff'
+    }
+    
     isAnswerSubmitted.value = true
   }
 }
@@ -654,9 +684,18 @@ const isCorrectOption = (optionIndex: number): boolean => {
 
 // 答题卡相关
 const getQuestionButtonType = (question: Question): 'success' | 'error' | 'default' => {
-  if (question.answerd === true && !question.error) return 'success'
-  if (question.answerd === true && question.error) return 'error'
-  return 'default'
+  if (isExamMode.value) {
+    // 考卷模式下根据答题记录显示
+    const questionIndex = currentQuestions.value.indexOf(question)
+    if (examAnswers.value[questionIndex] === true) return 'success'
+    if (examAnswers.value[questionIndex] === false) return 'error'
+    return 'default'
+  } else {
+    // 普通模式下根据原有逻辑显示
+    if (question.answerd === true && !question.error) return 'success'
+    if (question.answerd === true && question.error) return 'error'
+    return 'default'
+  }
 }
 
 const jumpToQuestion = (index: number) => {
@@ -904,8 +943,14 @@ const loadExamFromParams = async (bank: string, questions: string) => {
       console.error('没有找到有效的题目')
       return
     }
+    
+    // 初始化考卷
     currentQuestions.value = examQuestions
     currentIndex.value = 1
+    examTotalScore.value = examQuestions.length
+    examScore.value = 0
+    examAnswers.value = {}
+    
     console.log(`成功加载考卷: ${examQuestions.length} 题`)
   } catch (error) {
     console.error('加载考卷失败:', error)
@@ -925,8 +970,8 @@ const loadExamFromParams = async (bank: string, questions: string) => {
 }
 
 .card-box-modal {
-  max-width: 420px;
-  max-height: 100vh;
+  width: 420px;
+  height: 660px;
   overflow-y: auto;
 }
 
@@ -969,7 +1014,7 @@ const loadExamFromParams = async (bank: string, questions: string) => {
 
   .card-box-modal {
     width: 100%;
-    max-height: 100vh;
+    height: 100vh;
     overflow-y: auto;
   }
   
@@ -980,6 +1025,17 @@ const loadExamFromParams = async (bank: string, questions: string) => {
 }
 
 /* 考卷设置样式 */
+.n-modal .n-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.n-modal .n-card .n-card__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
 .ratio-summary {
   display: flex;
   justify-content: space-between;
