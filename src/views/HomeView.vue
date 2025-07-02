@@ -267,13 +267,9 @@
             <!-- 在线题库列表 -->
             <n-h4>在线题库</n-h4>
             <n-list hoverable clickable>
-              <n-list-item v-for="(repo, index) in questionRepositories" :key="index">
+              <n-list-item v-for="(repo, index) in availableQuestionRepositories" :key="index">
                 <n-thing :title="repo.name" :description="repo.description">
-                  <template #header-extra v-if="isQuestionBankDownloaded(repo.name)">
-                    <n-tag type="success" size="small"> 已下载 </n-tag>
-                  </template>
                   <n-button
-                    v-if="!isQuestionBankDownloaded(repo.name)"
                     @click="downloadQuestionBank(repo.url, repo.name)"
                     size="small"
                   >
@@ -503,6 +499,12 @@ const totalRatio = computed(() => {
          examConfig.value.trueFalseRatio + 
          examConfig.value.fillBlankRatio + 
          examConfig.value.essayRatio
+})
+
+const availableQuestionRepositories = computed(() => {
+  return questionRepositories.value.filter(repo => 
+    !questionBanks.value.some(bank => bank.name === repo.name)
+  )
 })
 
 // 初始化
@@ -904,7 +906,8 @@ const loadExamFromParams = async (bank: string, questions: string) => {
 
 .card-box-modal {
   max-width: 420px;
-  min-height: 660px;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .n-card {
@@ -946,7 +949,8 @@ const loadExamFromParams = async (bank: string, questions: string) => {
 
   .card-box-modal {
     width: 100%;
-    height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
   }
   
   .answer-sheet-grid {
