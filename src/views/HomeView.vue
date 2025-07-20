@@ -1,32 +1,29 @@
 <template>
   <div id="quiz-container" class="card-box">
-    <n-card hoverable :title="isExamMode ? '考卷模式' : '思政课在线题库'">
-              <template #header-extra>
-          <n-space>
-            <n-switch v-model:value="isRandomMode" :disabled="isExamMode">
-              <template #checked> 随机模式 </template>
-              <template #unchecked> 顺序模式 </template>
-            </n-switch>
-            <n-button size="small" circle @click="showSettingsModal = true" v-if="!isExamMode">
-              <n-icon>
-                <SettingsOutline />
-              </n-icon>
-            </n-button>
-            <n-button size="small" circle @click="showAnswerSheet = true">
-              <n-icon>
-                <ListOutline />
-              </n-icon>
-            </n-button>
-          </n-space>
-        </template>
+    <n-card hoverable title="思政课在线题库">
+      <template #header-extra>
+        <n-space>
+          <n-switch v-model:value="isRandomMode">
+            <template #checked> 随机模式 </template>
+            <template #unchecked> 顺序模式 </template>
+          </n-switch>
+          <n-button size="small" circle @click="showSettingsModal = true">
+            <n-icon>
+              <SettingsOutline />
+            </n-icon>
+          </n-button>
+          <n-button size="small" circle @click="showAnswerSheet = true">
+            <n-icon>
+              <ListOutline />
+            </n-icon>
+          </n-button>
+        </n-space>
+      </template>
 
       <n-thing>
         <template #header>
           {{ currentIndex }}/{{ totalQuestions }}
           <span>{{ questionTypeLabel }}</span>
-          <span v-if="isExamMode" style="margin-left: 10px; color: var(--n-primary-color);">
-            得分: {{ examScore }}/{{ examTotalScore }} ({{ examScorePercentage }}%)
-          </span>
         </template>
         <template v-if="isErrorMode" #header-extra>
           <n-space>
@@ -47,7 +44,6 @@
 
       <template #footer>
         <n-list hoverable clickable>
-          <!-- 选择题 -->
           <div v-if="isChoiceQuestion">
             <n-list-item
               v-for="(option, index) in currentQuestion?.options"
@@ -60,7 +56,6 @@
             </n-list-item>
           </div>
 
-          <!-- 判断题 -->
           <div v-else-if="currentQuestion?.type === 'true_or_false'">
             <n-list-item
               v-for="(option, index) in TRUE_FALSE_OPTIONS"
@@ -73,7 +68,6 @@
             </n-list-item>
           </div>
 
-          <!-- 问答题 -->
           <div v-else-if="currentQuestion?.type === 'essay'">
             <n-form-item label="答案" label-placement="left" :show-feedback="false">
               <n-input
@@ -85,7 +79,6 @@
             </n-form-item>
           </div>
 
-          <!-- 填空题 -->
           <div v-else-if="currentQuestion?.type === 'fill_blank'">
             <n-list-item v-for="(answer, index) in fillBlankAnswers" :key="index">
               <n-form-item
@@ -113,10 +106,10 @@
             </n-form-item>
           </div>
           <n-space>
-            <n-button 
-              v-show="currentIndex > 1" 
-              size="small" 
-              round 
+            <n-button
+              v-show="currentIndex > 1"
+              size="small"
+              round
               @click="goToPreviousQuestion"
             >
               上一题
@@ -134,7 +127,6 @@
       </template>
     </n-card>
 
-    <!-- 设置弹窗 -->
     <n-modal v-model:show="showSettingsModal">
       <n-card class="card-box-modal" title="设置" role="dialog" aria-modal="true">
         <template #header-extra>
@@ -158,69 +150,7 @@
             </n-form-item>
           </n-tab-pane>
 
-          <n-tab-pane name="exam" tab="考卷设置">
-            <n-form-item label="总题数：" label-placement="left">
-              <n-input-number
-                v-model:value="examConfig.totalQuestions"
-                :min="1"
-                :max="100"
-                style="width: 100%"
-              />
-            </n-form-item>
-            
-            <n-form-item :label="`题型比例（${totalRatio}%）：`" label-placement="left">
-              <div class="ratio-sliders">
-                <div class="ratio-item">
-                  <div class="ratio-label">
-                    <span>单选题：</span>
-                    <n-input-number v-model:value="examConfig.singleChoiceRatio" :min="0" :max="100" style="width: 80px;" suffix="%" />
-                  </div>
-                </div>
-                <div class="ratio-item">
-                  <div class="ratio-label">
-                    <span>多选题：</span>
-                    <n-input-number v-model:value="examConfig.multipleChoiceRatio" :min="0" :max="100" style="width: 80px;" suffix="%" />
-                  </div>
-                </div>
-                <div class="ratio-item">
-                  <div class="ratio-label">
-                    <span>判断题：</span>
-                    <n-input-number v-model:value="examConfig.trueFalseRatio" :min="0" :max="100" style="width: 80px;" suffix="%" />
-                  </div>
-                </div>
-                <div class="ratio-item">
-                  <div class="ratio-label">
-                    <span>填空题：</span>
-                    <n-input-number v-model:value="examConfig.fillBlankRatio" :min="0" :max="100" style="width: 80px;" suffix="%" />
-                  </div>
-                </div>
-                <div class="ratio-item">
-                  <div class="ratio-label">
-                    <span>问答题：</span>
-                    <n-input-number v-model:value="examConfig.essayRatio" :min="0" :max="100" style="width: 80px;" suffix="%" />
-                  </div>
-                </div>
-              </div>
-            </n-form-item>
-            
-            <n-form-item>
-              <n-space>
-                <n-button @click="generateExam" type="primary">
-                  生成考卷
-                </n-button>
-                <n-button @click="shareExam" v-if="examUrl" type="info">
-                  分享考卷
-                </n-button>
-              </n-space>
-            </n-form-item>
-            
-            <n-form-item v-if="examUrl" label="考卷链接：" label-placement="left">
-              <n-input :value="examUrl" readonly />
-            </n-form-item>
-          </n-tab-pane>
-
           <n-tab-pane name="questions" tab="题库商店">
-            <!-- 手动下载区域 -->
             <n-form-item label="手动下载：" label-placement="left">
               <n-space vertical>
                 <n-input
@@ -246,7 +176,6 @@
             
             <n-divider />
             
-            <!-- 已下载题库列表 -->
             <n-h4>已下载题库</n-h4>
             <n-list hoverable clickable>
               <n-list-item v-for="(bank, index) in questionBanks" :key="index">
@@ -267,7 +196,6 @@
             
             <n-divider />
             
-            <!-- 在线题库列表 -->
             <n-h4>在线题库</n-h4>
             <n-list hoverable clickable>
               <n-list-item v-for="(repo, index) in availableQuestionRepositories" :key="index">
@@ -308,7 +236,6 @@
       </n-card>
     </n-modal>
 
-    <!-- 答题卡抽屉 -->
     <n-drawer 
       display-directive="show" 
       v-model:show="showAnswerSheet"
@@ -329,7 +256,6 @@
           </n-button>
         </div>
         
-        <!-- 虚拟滚动加载更多 -->
         <div 
           v-if="totalQuestions > VISIBLE_QUESTIONS_LIMIT"
           class="load-more-container"
@@ -351,10 +277,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-
-const router = useRouter()
-const route = useRoute()
 import {
   NCard,
   NButton,
@@ -372,12 +294,10 @@ import {
   NSelect,
   NTabs,
   NTabPane,
-  NTag,
   NDrawer,
   NDrawerContent,
   NDivider,
   NH4,
-  NSlider
 } from 'naive-ui'
 import {
   SettingsOutline,
@@ -439,22 +359,6 @@ const showAllQuestions = ref(false)
 const customDownloadUrl = ref('')
 const customDownloadName = ref('')
 
-// 考卷相关
-const examUrl = ref('')
-const examConfig = ref({
-  totalQuestions: 20,
-  singleChoiceRatio: 30,
-  multipleChoiceRatio: 20,
-  trueFalseRatio: 20,
-  fillBlankRatio: 15,
-  essayRatio: 15
-})
-
-// 考卷得分相关
-const examScore = ref(0)
-const examTotalScore = ref(0)
-const examAnswers = ref<Record<number, boolean>>({})
-
 // 计算属性
 const totalQuestions = computed(() => currentQuestions.value.length)
 
@@ -501,46 +405,17 @@ const visibleQuestions = computed(() => {
   return currentQuestions.value.slice(0, VISIBLE_QUESTIONS_LIMIT)
 })
 
-const totalRatio = computed(() => {
-  return examConfig.value.singleChoiceRatio + 
-         examConfig.value.multipleChoiceRatio + 
-         examConfig.value.trueFalseRatio + 
-         examConfig.value.fillBlankRatio + 
-         examConfig.value.essayRatio
-})
-
 const availableQuestionRepositories = computed(() => {
   return questionRepositories.value.filter(repo => 
     !questionBanks.value.some(bank => bank.name === repo.name)
   )
 })
 
-const isExamMode = computed(() => {
-  const urlParams = new URLSearchParams(window.location.search)
-  return urlParams.has('bank') && urlParams.has('questions')
-})
-
-const examScorePercentage = computed(() => {
-  if (examTotalScore.value === 0) return 0
-  return Math.round((examScore.value / examTotalScore.value) * 100)
-})
-
 // 初始化
 onMounted(async () => {
   try {
     questionRepositories.value = await questionStore.listQuestion()
-    
-    // 检查URL参数，如果是考卷链接则加载考卷
-    const urlParams = new URLSearchParams(window.location.search)
-    const bank = urlParams.get('bank')
-    const questions = urlParams.get('questions')
-    
-    if (bank && questions) {
-      await loadExamFromParams(bank, questions)
-    } else {
-      loadQuestionBank(selectedQuestionBankId.value)
-    }
-    
+    loadQuestionBank(selectedQuestionBankId.value)
     initializeSwipeHandler()
   } catch (error) {
     console.error('初始化失败:', error)
@@ -607,7 +482,7 @@ const goToNextQuestion = () => {
     currentIndex.value++
   }
   
-  if (!isErrorMode.value && !isExamMode.value) {
+  if (!isErrorMode.value) {
     questionStore.addRecord(selectedQuestionBankId.value, currentIndex.value)
   }
 }
@@ -619,7 +494,7 @@ const goToPreviousQuestion = () => {
     currentIndex.value--
   }
   
-  if (!isErrorMode.value && !isExamMode.value) {
+  if (!isErrorMode.value) {
     questionStore.addRecord(selectedQuestionBankId.value, currentIndex.value)
   }
 }
@@ -629,22 +504,14 @@ const handleAnswerClick = (event: Event) => {
   const isCorrect = element.dataset.isCorrect === 'true'
   const answerCount = Number(element.dataset.answerCount)
   
-  if (!isExamMode.value) {
-    questionStore.addAnsweredMark(selectedQuestionBankId.value, currentIndex.value - 1)
-  }
+  questionStore.addAnsweredMark(selectedQuestionBankId.value, currentIndex.value - 1)
   
   if (isCorrect) {
     element.style.backgroundColor = '#67c23a'
     element.style.color = '#fff'
     correctAnswersSelected.value++
     
-    // 考卷模式下计算得分
-    if (isExamMode.value && !isAnswerSubmitted.value) {
-      examAnswers.value[currentIndex.value - 1] = true
-      examScore.value++
-    }
-    
-    if (!isAnswerSubmitted.value && correctAnswersSelected.value === answerCount && !isExamMode.value) {
+    if (!isAnswerSubmitted.value && correctAnswersSelected.value === answerCount) {
       setTimeout(() => {
         if (!isAnswerSubmitted.value) {
           goToNextQuestion()
@@ -653,22 +520,14 @@ const handleAnswerClick = (event: Event) => {
     }
   } else {
     if (!isAnswerSubmitted.value) {
-      if (!isExamMode.value) {
         addToErrorList(currentQuestion.value!)
         if (currentQuestion.value) {
           currentQuestion.value.error = true
         }
-      } else {
-        // 考卷模式下记录错误答案
-        examAnswers.value[currentIndex.value - 1] = false
-      }
     }
     
-    // 考卷模式下不显示红色错误提示
-    if (!isExamMode.value) {
-      element.style.backgroundColor = '#f56c6c'
-      element.style.color = '#fff'
-    }
+    element.style.backgroundColor = '#f56c6c'
+    element.style.color = '#fff'
     
     isAnswerSubmitted.value = true
   }
@@ -684,18 +543,9 @@ const isCorrectOption = (optionIndex: number): boolean => {
 
 // 答题卡相关
 const getQuestionButtonType = (question: Question): 'success' | 'error' | 'default' => {
-  if (isExamMode.value) {
-    // 考卷模式下根据答题记录显示
-    const questionIndex = currentQuestions.value.indexOf(question)
-    if (examAnswers.value[questionIndex] === true) return 'success'
-    if (examAnswers.value[questionIndex] === false) return 'error'
-    return 'default'
-  } else {
-    // 普通模式下根据原有逻辑显示
     if (question.answerd === true && !question.error) return 'success'
     if (question.answerd === true && question.error) return 'error'
     return 'default'
-  }
 }
 
 const jumpToQuestion = (index: number) => {
@@ -803,10 +653,6 @@ const initializeSwipeHandler = () => {
 }
 
 // 题库管理
-const isQuestionBankDownloaded = (bankName: string): boolean => {
-  return questionBanks.value.some(bank => bank.name === bankName)
-}
-
 const downloadQuestionBank = (url: string, name: string) => {
   questionStore.addQuestion(url, name)
 }
@@ -837,126 +683,6 @@ const deleteQuestionBank = (bankId: string) => {
 const getQuestionBankName = (bankId: string): string => {
   return questionBanks.value.find(bank => bank.id === bankId)?.name || '未知题库'
 }
-
-// 考卷相关方法
-const generateExam = () => {
-  if (!selectedQuestionBankId.value) {
-    alert('请先选择题库')
-    return
-  }
-  // 检查比例总和
-  const totalRatio = examConfig.value.singleChoiceRatio + 
-                    examConfig.value.multipleChoiceRatio + 
-                    examConfig.value.trueFalseRatio + 
-                    examConfig.value.fillBlankRatio + 
-                    examConfig.value.essayRatio
-  if (totalRatio > 100) {
-    alert('题型比例总和不能超过100%，当前为' + totalRatio + '%')
-    return
-  }
-  const selectedBank = questionBanks.value.find(bank => bank.id === selectedQuestionBankId.value)
-  if (!selectedBank) return
-  // 按比例分配题目
-  const questions = selectedBank.questions
-  const examQuestions: Question[] = []
-  const questionIds: number[] = []
-  const typeMap = {
-    single_choice: 'singleChoiceRatio',
-    multiple_choice: 'multipleChoiceRatio',
-    true_or_false: 'trueFalseRatio',
-    fill_blank: 'fillBlankRatio',
-    essay: 'essayRatio'
-  }
-  // 按题型分组
-  const questionsByType: Record<string, Question[]> = {}
-  questions.forEach((q, index) => {
-    const type = q.type
-    if (!questionsByType[type]) {
-      questionsByType[type] = []
-    }
-    questionsByType[type].push({ ...q, id: index })
-  })
-  // 按比例选择题目
-  Object.entries(typeMap).forEach(([type, ratioKey]) => {
-    const ratio = examConfig.value[ratioKey as keyof typeof examConfig.value] as number
-    const count = Math.round((examConfig.value.totalQuestions * ratio) / 100)
-    const availableQuestions = questionsByType[type] || []
-    const selected = availableQuestions
-      .sort(() => Math.random() - 0.5)
-      .slice(0, Math.min(count, availableQuestions.length))
-    examQuestions.push(...selected)
-    questionIds.push(...selected.map(q => q.id as number))
-  })
-  // 如果题目不够，从其他题型补充
-  if (examQuestions.length < examConfig.value.totalQuestions) {
-    const remaining = examConfig.value.totalQuestions - examQuestions.length
-    const allQuestions = questions.filter((_, index) => !questionIds.includes(index))
-    const additional = allQuestions
-      .sort(() => Math.random() - 0.5)
-      .slice(0, remaining)
-      .map((q, index) => ({ ...q, id: questions.length + index }))
-    examQuestions.push(...additional)
-  }
-  // 打乱题目顺序
-  examQuestions.sort(() => Math.random() - 0.5)
-  // 生成考卷URL
-  const questionIdsStr = questionIds.join(',')
-  const bankName = encodeURIComponent(selectedBank.name)
-  examUrl.value = `${window.location.origin}/exam?bank=${bankName}&questions=${questionIdsStr}`
-}
-
-const shareExam = () => {
-  if (examUrl.value) {
-    navigator.clipboard.writeText(examUrl.value).then(() => {
-      alert('考卷链接已复制到剪贴板')
-    }).catch(() => {
-      // 降级方案
-      const textArea = document.createElement('textarea')
-      textArea.value = examUrl.value
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      alert('考卷链接已复制到剪贴板')
-    })
-  }
-}
-
-const loadExamFromParams = async (bank: string, questions: string) => {
-  if (!bank || !questions) {
-    console.error('考卷参数不完整')
-    return
-  }
-  try {
-    const bankName = decodeURIComponent(bank)
-    const questionIds = questions.split(',').map(id => parseInt(id))
-    const targetBank = questionBanks.value.find(b => b.name === bankName)
-    if (!targetBank) {
-      console.error('找不到对应的题库:', bankName)
-      return
-    }
-    const examQuestions = questionIds.map(id => {
-      const question = targetBank.questions[id]
-      return question ? { ...question, id } : null
-    }).filter(Boolean) as Question[]
-    if (examQuestions.length === 0) {
-      console.error('没有找到有效的题目')
-      return
-    }
-    
-    // 初始化考卷
-    currentQuestions.value = examQuestions
-    currentIndex.value = 1
-    examTotalScore.value = examQuestions.length
-    examScore.value = 0
-    examAnswers.value = {}
-    
-    console.log(`成功加载考卷: ${examQuestions.length} 题`)
-  } catch (error) {
-    console.error('加载考卷失败:', error)
-  }
-}
-
 </script>
 
 <style scoped>
@@ -1024,7 +750,6 @@ const loadExamFromParams = async (bank: string, questions: string) => {
   }
 }
 
-/* 考卷设置样式 */
 .n-modal .n-card {
   display: flex;
   flex-direction: column;
@@ -1034,77 +759,5 @@ const loadExamFromParams = async (bank: string, questions: string) => {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-}
-
-.ratio-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding: 8px 12px;
-  background-color: var(--n-color);
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.total-ratio {
-  font-weight: 600;
-  color: var(--n-primary-color);
-}
-
-.ratio-warning {
-  color: #f56c6c !important;
-}
-
-.ratio-sliders {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.ratio-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ratio-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  color: var(--n-text-color);
-}
-
-.ratio-value {
-  font-weight: 500;
-  color: var(--n-primary-color);
-  min-width: 40px;
-  text-align: right;
-}
-
-/* 滑块容器样式 */
-.ratio-item .n-slider {
-  margin-top: 4px;
-}
-
-/* 移动端适配 */
-@media screen and (max-width: 768px) {
-  .ratio-sliders {
-    gap: 15px;
-  }
-  
-  .ratio-item {
-    gap: 6px;
-  }
-  
-  .ratio-label {
-    font-size: 13px;
-  }
-  
-  .ratio-summary {
-    padding: 6px 10px;
-    font-size: 13px;
-  }
 }
 </style>
