@@ -695,11 +695,22 @@ const getQuestionBankName = (bankId: string): string => {
   transform: translate(-50%, -50%);
 }
 
+/* --- STYLE CHANGE START --- */
+/* 优化设置弹窗在桌面端的样式 */
 .card-box-modal {
-  width: 420px;
-  height: 660px;
+  /* 使用viewport单位实现基础响应式宽度 */
+  width: 90vw; 
+  /* 在宽屏设备上限制最大宽度，避免过宽 */
+  max-width: 650px; 
+  /* 增加最小高度，避免内容过少时塌陷 */
+  min-height: 600px; 
+  /* 限制最大高度，适配不同屏幕比例 */
+  max-height: 85vh; 
+  /* 内容超出时显示滚动条 */
   overflow-y: auto;
 }
+/* --- STYLE CHANGE END --- */
+
 
 .n-card {
   width: 100%;
@@ -728,6 +739,7 @@ const getQuestionBankName = (bankId: string): string => {
   padding: 20px 0;
 }
 
+/* 媒体查询，用于适配移动端设备 */
 @media screen and (max-width: 768px) {
   .card-box {
     width: 100%;
@@ -738,10 +750,14 @@ const getQuestionBankName = (bankId: string): string => {
     transform: translate(0, 0);
   }
 
+  /* 在移动端，让设置弹窗占据整个屏幕 */
   .card-box-modal {
     width: 100%;
     height: 100vh;
-    overflow-y: auto;
+    /* 恢复在移动端不需要的限制 */
+    max-width: none; 
+    min-height: 0;
+    max-height: none;
   }
   
   .answer-sheet-grid {
